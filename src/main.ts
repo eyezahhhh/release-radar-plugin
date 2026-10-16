@@ -1,5 +1,5 @@
 import type { Plugin, PluginApiContext } from "@pipe-bomb/plugin-sdk";
-import { PlaylistManager } from "./playlist-manager.js";
+import { ReleaseRadarManager } from "./release-radar-manager.js";
 import path from "path";
 import { createDatabaseClient } from "./db/client.js";
 import { DatabaseManager } from "./db/database-manager.js";
@@ -22,7 +22,7 @@ export default class ReleaseRadarPlugin implements Plugin {
 
 		const databaseManager = new DatabaseManager(dbClient);
 
-		const playlistManager = new PlaylistManager(
+		const playlistManager = new ReleaseRadarManager(
 			api.getDataClient(),
 			databaseManager,
 			api.getPlaylistClient({

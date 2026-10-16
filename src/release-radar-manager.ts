@@ -22,7 +22,7 @@ interface RecentAlbum extends DiscoveredEphemeralAlbum {
 	tracks: EphemeralTrack[];
 }
 
-export class PlaylistManager {
+export class ReleaseRadarManager {
 	constructor(
 		private readonly dataClient: DataClient,
 		private readonly databaseManager: DatabaseManager,

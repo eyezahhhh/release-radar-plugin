@@ -1,3 +1,4 @@
 {
-	"plugin.release-radar.name": "Release Radar"
+	"plugin.release-radar.name": "Release Radar",
+	"task.plugin.release-radar.create-playlists.name": "Update Release Radar playlists"
 }
