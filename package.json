@@ -20,7 +20,7 @@
 	},
 	"dependencies": {
 		"@pipe-bomb/plugin-sdk": "file:../../sdk",
-		"better-sqlite3": "^13.0.3",
+		"better-sqlite3": "^12.11.1",
 		"drizzle-kit": "^0.31.11",
 		"drizzle-orm": "^0.45.4",
 		"ephemeral-import": "github:eyezahhhh/ephemeral-import-plugin"
