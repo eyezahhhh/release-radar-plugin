@@ -1,0 +1,195 @@
+{
+  "version": "6",
+  "dialect": "sqlite",
+  "id": "61027b62-c5f4-4d30-98ec-c7c9fe03f3d1",
+  "prevId": "00000000-0000-0000-0000-000000000000",
+  "tables": {
+    "discovered_artists": {
+      "name": "discovered_artists",
+      "columns": {
+        "identity_id": {
+          "name": "identity_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "identity": {
+          "name": "identity",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {
+        "discovered_artists_identity_id_identity_pk": {
+          "columns": [
+            "identity_id",
+            "identity"
+          ],
+          "name": "discovered_artists_identity_id_identity_pk"
+        }
+      },
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "discovered_ephemeral_album_artists": {
+      "name": "discovered_ephemeral_album_artists",
+      "columns": {
+        "album_plugin_id": {
+          "name": "album_plugin_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "album_identity_id": {
+          "name": "album_identity_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "album_identity": {
+          "name": "album_identity",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "artist_identity_id": {
+          "name": "artist_identity_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "artist_identity": {
+          "name": "artist_identity",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "idx_album_artists_artist": {
+          "name": "idx_album_artists_artist",
+          "columns": [
+            "artist_identity_id",
+            "artist_identity"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "discovered_ephemeral_album_artists_album_plugin_id_album_identity_id_album_identity_discovered_ephemeral_albums_plugin_id_identity_id_identity_fk": {
+          "name": "discovered_ephemeral_album_artists_album_plugin_id_album_identity_id_album_identity_discovered_ephemeral_albums_plugin_id_identity_id_identity_fk",
+          "tableFrom": "discovered_ephemeral_album_artists",
+          "tableTo": "discovered_ephemeral_albums",
+          "columnsFrom": [
+            "album_plugin_id",
+            "album_identity_id",
+            "album_identity"
+          ],
+          "columnsTo": [
+            "plugin_id",
+            "identity_id",
+            "identity"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "discovered_ephemeral_album_artists_artist_identity_id_artist_identity_discovered_artists_identity_id_identity_fk": {
+          "name": "discovered_ephemeral_album_artists_artist_identity_id_artist_identity_discovered_artists_identity_id_identity_fk",
+          "tableFrom": "discovered_ephemeral_album_artists",
+          "tableTo": "discovered_artists",
+          "columnsFrom": [
+            "artist_identity_id",
+            "artist_identity"
+          ],
+          "columnsTo": [
+            "identity_id",
+            "identity"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "discovered_ephemeral_album_artists_album_plugin_id_album_identity_id_album_identity_artist_identity_id_artist_identity_pk": {
+          "columns": [
+            "album_plugin_id",
+            "album_identity_id",
+            "album_identity",
+            "artist_identity_id",
+            "artist_identity"
+          ],
+          "name": "discovered_ephemeral_album_artists_album_plugin_id_album_identity_id_album_identity_artist_identity_id_artist_identity_pk"
+        }
+      },
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "discovered_ephemeral_albums": {
+      "name": "discovered_ephemeral_albums",
+      "columns": {
+        "plugin_id": {
+          "name": "plugin_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "identity_id": {
+          "name": "identity_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "identity": {
+          "name": "identity",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "date_discovered": {
+          "name": "date_discovered",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {
+        "discovered_ephemeral_albums_plugin_id_identity_id_identity_pk": {
+          "columns": [
+            "plugin_id",
+            "identity_id",
+            "identity"
+          ],
+          "name": "discovered_ephemeral_albums_plugin_id_identity_id_identity_pk"
+        }
+      },
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    }
+  },
+  "views": {},
+  "enums": {},
+  "_meta": {
+    "schemas": {},
+    "tables": {},
+    "columns": {}
+  },
+  "internal": {
+    "indexes": {}
+  }
+}
