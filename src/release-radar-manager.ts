@@ -176,29 +176,37 @@ export class ReleaseRadarManager {
 					album.identityId,
 				);
 				if (ephemeralSource) {
-					const metadata = await ephemeralSource.source.resolveAlbum(
-						album.identityId,
-						album.identity,
-					);
-					if (metadata) {
-						if (
-							metadata.attributes &&
-							!metadata.attributes.some(
-								(a) => a.key == "releaseradar_exclude" && a.value === true,
-							)
-						) {
-							const content = await ephemeralSource.source.resolveAlbumContent(
-								album.identityId,
-								album.identity,
-							);
-							if (content?.tracks?.length) {
-								usingAlbums.push({
-									...album,
-									tracks: content.tracks,
-								});
-								trackCount += content.tracks.length;
+					try {
+						const metadata = await ephemeralSource.source.resolveAlbum(
+							album.identityId,
+							album.identity,
+						);
+						if (metadata) {
+							if (
+								metadata.attributes &&
+								!metadata.attributes.some(
+									(a) => a.key == "releaseradar_exclude" && a.value === true,
+								)
+							) {
+								const content =
+									await ephemeralSource.source.resolveAlbumContent(
+										album.identityId,
+										album.identity,
+									);
+								if (content?.tracks?.length) {
+									usingAlbums.push({
+										...album,
+										tracks: content.tracks,
+									});
+									trackCount += content.tracks.length;
+								}
 							}
 						}
+					} catch (e) {
+						this.logger.error(
+							`Failed to resolve album ${album.pluginId}.${album.identityId}.${album.identity}:`,
+							e,
+						);
 					}
 				}
 			}
