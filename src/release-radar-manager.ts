@@ -2,8 +2,10 @@ import {
 	AttributeValue,
 	DataClient,
 	EphemeralAlbumContent,
+	EphemeralArtistContent,
 	EphemeralSourceInfo,
 	EphemeralTrack,
+	Identity,
 	Logger,
 	SavedArtist,
 	SavedAttribute,
@@ -17,6 +19,7 @@ import { readFile } from "fs/promises";
 import { getAssetPath, getAttribute, getDiscoveryDate } from "./util.js";
 
 const MIN_PLAYLIST_LENGTH = 30;
+const ARTIST_CONTENT_WEIGHT = 0.4;
 
 interface RecentAlbum extends DiscoveredEphemeralAlbum {
 	tracks: EphemeralTrack[];
@@ -106,57 +109,32 @@ export class ReleaseRadarManager {
 
 			const allRecentAlbums: DiscoveredEphemeralAlbum[] = [];
 
+			const artistSlice = percentSlice / artists.length;
+
 			for (const [artistIndex, artist] of artists.entries()) {
-				ctx.update(
-					startPercent + (percentSlice / artists.length) * artistIndex,
-				);
-				if (!artist.identities?.length) {
-					continue;
-				}
-				if (!checkedArtistUuids.has(artist.uuid)) {
-					for (const identity of artist.identities) {
+				const artistStart = startPercent + artistSlice * artistIndex;
+				const contentEnd = artistStart + artistSlice * ARTIST_CONTENT_WEIGHT;
+
+				if (artist.identities?.length && !checkedArtistUuids.has(artist.uuid)) {
+					const identities = artist.identities;
+
+					const contents: {
+						identity: Identity;
+						content: EphemeralArtistContent | null;
+					}[] = [];
+					for (const [identityIndex, identity] of identities.entries()) {
 						const ephemeralSource = this.getEphemeralArtistSource(
 							identity.pluginId,
 							identity.identityId,
 						);
 						if (ephemeralSource) {
-							// this.logger.debug(
-							// 	`Found source "${ephemeralSource.source.id}" for artist!`,
-							// );
 							try {
 								const content =
 									await ephemeralSource.source.resolveArtistContent(
 										identity.identityId,
 										identity.identity,
 									);
-
-								const albums: AlbumInsertRow[] = [];
-								for (const albumStub of content?.albums ?? []) {
-									const ephemeralSource = this.getEphemeralAlbumSource(
-										albumStub.pluginId,
-										albumStub.identityId,
-									);
-									if (ephemeralSource) {
-										const albumMeta = await ephemeralSource.source.resolveAlbum(
-											albumStub.identityId,
-											albumStub.identity,
-										);
-										if (albumMeta) {
-											const releaseDate = getDiscoveryDate(
-												albumMeta.attributes ?? [],
-											);
-
-											albums.push({
-												pluginId: albumStub.pluginId,
-												identityId: albumStub.identityId,
-												identity: albumStub.identity,
-												releaseDate,
-											});
-										}
-									}
-								}
-
-								await this.databaseManager.addAlbums(albums, identity);
+								contents.push({ identity, content });
 							} catch (e) {
 								this.logger.error(
 									`Failed to get artist content from "${ephemeralSource.sourceId}" for "${artist.uuid}":`,
@@ -164,14 +142,75 @@ export class ReleaseRadarManager {
 								);
 							}
 						}
+
+						ctx.update(
+							artistStart +
+								(contentEnd - artistStart) *
+									((identityIndex + 1) / identities.length),
+						);
 					}
 					checkedArtistUuids.add(artist.uuid);
+
+					const totalAlbumStubs = contents.reduce(
+						(total, { content }) => total + (content?.albums?.length ?? 0),
+						0,
+					);
+					let albumStubIndex = 0;
+					for (const { identity, content } of contents) {
+						try {
+							const albums: AlbumInsertRow[] = [];
+							for (const albumStub of content?.albums ?? []) {
+								const ephemeralSource = this.getEphemeralAlbumSource(
+									albumStub.pluginId,
+									albumStub.identityId,
+								);
+								if (ephemeralSource) {
+									const albumMeta = await ephemeralSource.source.resolveAlbum(
+										albumStub.identityId,
+										albumStub.identity,
+									);
+									if (albumMeta) {
+										const releaseDate = getDiscoveryDate(
+											albumMeta.attributes ?? [],
+										);
+
+										albums.push({
+											pluginId: albumStub.pluginId,
+											identityId: albumStub.identityId,
+											identity: albumStub.identity,
+											releaseDate,
+										});
+									}
+								}
+
+								albumStubIndex++;
+								if (totalAlbumStubs) {
+									ctx.update(
+										contentEnd +
+											(artistStart + artistSlice - contentEnd) *
+												(albumStubIndex / totalAlbumStubs),
+									);
+								}
+							}
+
+							await this.databaseManager.addAlbums(albums, identity);
+						} catch (e) {
+							this.logger.error(
+								`Failed to resolve albums for "${artist.uuid}":`,
+								e,
+							);
+						}
+					}
 				}
 
-				const recentAlbums = await this.databaseManager.getNewAlbumsByArtist(
-					artist.identities,
-				);
-				allRecentAlbums.push(...recentAlbums);
+				if (artist.identities?.length) {
+					const recentAlbums = await this.databaseManager.getNewAlbumsByArtist(
+						artist.identities,
+					);
+					allRecentAlbums.push(...recentAlbums);
+				}
+
+				ctx.update(artistStart + artistSlice);
 			}
 
 			allRecentAlbums.sort((a, b) => b.dateDiscovered - a.dateDiscovered);
@@ -327,5 +366,7 @@ export class ReleaseRadarManager {
 			}
 			await this.playlistClient.addToPlaylist(playlistUuid, trackUuids);
 		});
+
+		ctx.update(1);
 	}
 }

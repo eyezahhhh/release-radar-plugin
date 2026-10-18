@@ -1,5 +1,5 @@
 import { Identity } from "@pipe-bomb/plugin-sdk";
-import { and, desc, eq, gte, or } from "drizzle-orm";
+import { and, desc, eq, gte, or, sql } from "drizzle-orm";
 import { DBClient } from "./client.js";
 import * as Schema from "./schema.js";
 
@@ -16,6 +16,8 @@ export class DatabaseManager {
 		}
 
 		const dateDiscovered = Date.now();
+		const datedAlbums = albums.filter(({ releaseDate }) => releaseDate != null);
+		const undatedAlbums = albums.filter(({ releaseDate }) => releaseDate == null);
 
 		this.client.transaction((tx) => {
 			tx.insert(Schema.discoveredArtists)
@@ -26,17 +28,42 @@ export class DatabaseManager {
 				.onConflictDoNothing()
 				.run();
 
-			tx.insert(Schema.discoveredEphemeralAlbums)
-				.values(
-					albums.map(({ pluginId, identityId, identity, releaseDate }) => ({
-						pluginId,
-						identityId,
-						identity,
-						dateDiscovered: releaseDate ?? dateDiscovered,
-					})),
-				)
-				.onConflictDoNothing()
-				.run();
+			if (datedAlbums.length) {
+				tx.insert(Schema.discoveredEphemeralAlbums)
+					.values(
+						datedAlbums.map(({ pluginId, identityId, identity, releaseDate }) => ({
+							pluginId,
+							identityId,
+							identity,
+							dateDiscovered: releaseDate!,
+						})),
+					)
+					.onConflictDoUpdate({
+						target: [
+							Schema.discoveredEphemeralAlbums.pluginId,
+							Schema.discoveredEphemeralAlbums.identityId,
+							Schema.discoveredEphemeralAlbums.identity,
+						],
+						set: {
+							dateDiscovered: sql`excluded.date_discovered`,
+						},
+					})
+					.run();
+			}
+
+			if (undatedAlbums.length) {
+				tx.insert(Schema.discoveredEphemeralAlbums)
+					.values(
+						undatedAlbums.map(({ pluginId, identityId, identity }) => ({
+							pluginId,
+							identityId,
+							identity,
+							dateDiscovered,
+						})),
+					)
+					.onConflictDoNothing()
+					.run();
+			}
 
 			tx.insert(Schema.discoveredEphemeralAlbumArtists)
 				.values(
