@@ -14,7 +14,7 @@ import { AlbumInsertRow, DatabaseManager } from "./db/database-manager.js";
 import { DiscoveredEphemeralAlbum } from "./db/schema.js";
 import { PlaylistAttributeSource } from "./playlist.attribute-source.js";
 import { readFile } from "fs/promises";
-import { getAssetPath } from "./util.js";
+import { getAssetPath, getAttribute, getDiscoveryDate } from "./util.js";
 
 const MIN_PLAYLIST_LENGTH = 30;
 
@@ -66,8 +66,10 @@ export class ReleaseRadarManager {
 		const checkedArtistUuids = new Set<string>();
 
 		let userIndex = 0;
+		const percentSlice = 1 / userCount;
 		await this.dataClient.forEachUserId(async (userUuid) => {
-			ctx.update(userIndex++ / userCount);
+			const startPercent = userIndex++ / userCount;
+			ctx.update(startPercent);
 
 			const artists: SavedArtist[] = [];
 			for (let i = 0; true; i++) {
@@ -104,7 +106,10 @@ export class ReleaseRadarManager {
 
 			const allRecentAlbums: DiscoveredEphemeralAlbum[] = [];
 
-			for (const artist of artists) {
+			for (const [artistIndex, artist] of artists.entries()) {
+				ctx.update(
+					startPercent + (percentSlice / artists.length) * artistIndex,
+				);
 				if (!artist.identities?.length) {
 					continue;
 				}
@@ -126,17 +131,29 @@ export class ReleaseRadarManager {
 									);
 
 								const albums: AlbumInsertRow[] = [];
-								for (const album of content?.albums ?? []) {
-									const releaseAttribute = album.attributes?.find(
-										(a) =>
-											a.key == "release_date" && typeof a.value == "number",
-									) as AttributeValue<"decimal" | "integer">;
-									albums.push({
-										pluginId: album.pluginId,
-										identityId: album.identityId,
-										identity: album.identity,
-										releaseDate: releaseAttribute?.value ?? null,
-									});
+								for (const albumStub of content?.albums ?? []) {
+									const ephemeralSource = this.getEphemeralAlbumSource(
+										albumStub.pluginId,
+										albumStub.identityId,
+									);
+									if (ephemeralSource) {
+										const albumMeta = await ephemeralSource.source.resolveAlbum(
+											albumStub.identityId,
+											albumStub.identity,
+										);
+										if (albumMeta) {
+											const releaseDate = getDiscoveryDate(
+												albumMeta.attributes ?? [],
+											);
+
+											albums.push({
+												pluginId: albumStub.pluginId,
+												identityId: albumStub.identityId,
+												identity: albumStub.identity,
+												releaseDate,
+											});
+										}
+									}
 								}
 
 								await this.databaseManager.addAlbums(albums, identity);
@@ -184,8 +201,10 @@ export class ReleaseRadarManager {
 						if (metadata) {
 							if (
 								metadata.attributes &&
-								!metadata.attributes.some(
-									(a) => a.key == "releaseradar_exclude" && a.value === true,
+								!getAttribute(
+									metadata.attributes,
+									"releaseradar_exclude",
+									"boolean",
 								)
 							) {
 								const content =
