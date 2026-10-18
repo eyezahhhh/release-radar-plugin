@@ -1,7 +1,6 @@
 import {
 	AttributeValue,
 	DataClient,
-	EphemeralAlbumContent,
 	EphemeralArtistContent,
 	EphemeralSourceInfo,
 	EphemeralTrack,
@@ -18,7 +17,7 @@ import { PlaylistAttributeSource } from "./playlist.attribute-source.js";
 import { readFile } from "fs/promises";
 import { getAssetPath, getAttribute, getDiscoveryDate } from "./util.js";
 
-const MIN_PLAYLIST_LENGTH = 30;
+const MIN_PLAYLIST_LENGTH = 100;
 const ARTIST_CONTENT_WEIGHT = 0.4;
 
 interface RecentAlbum extends DiscoveredEphemeralAlbum {
